@@ -1,0 +1,242 @@
+slug: realtor
+version: 1.0.0
+name: Realtor Suit
+description: Daily AI assistant for Canadian real estate agents
+price:
+  monthly: 19
+  currency: CAD
+
+onboarding:
+  questions:
+    - id: name_brokerage
+      text: "What's your name and brokerage?"
+      type: text
+      required: true
+    - id: markets
+      text: "Which markets do you cover? (e.g. Edmonton, St. Albert)"
+      type: text
+      required: true
+    - id: digest_time
+      text: "What time should I send your morning digest?"
+      type: choice
+      choices: ["6:00 AM", "7:00 AM", "8:00 AM", "Custom"]
+      required: true
+    - id: tone
+      text: "How should I write client messages for you?"
+      type: choice
+      choices: ["Warm and friendly", "Professional and direct", "Casual"]
+      required: true
+    - id: email
+      text: "Your email address (for CMA reports and DocuSign links)"
+      type: email
+      required: false
+
+skills:
+  - mls-search
+  - google-calendar
+  - email-smtp
+  - pdf-generator
+  - web-search
+
+workflows:
+  - id: morning-digest
+    name: Morning digest
+    description: Daily listing digest with new listings and price drops
+    trigger:
+      type: cron
+      value: "0 7 * * *"
+    steps:
+      - id: search-new-listings
+        skill: mls-search
+        input:
+          markets: "{{onboarding.markets}}"
+          filter: new_last_24h
+          limit: "10"
+        output: newListings
+      - id: search-price-drops
+        skill: mls-search
+        input:
+          markets: "{{onboarding.markets}}"
+          filter: price_reduced_last_24h
+          limit: "5"
+        output: priceDrops
+      - id: get-calendar
+        skill: google-calendar
+        input:
+          date: today
+          lookahead_hours: "24"
+        output: todaySchedule
+      - id: format-digest
+        skill: llm-format
+        input:
+          template: realtor-morning-digest
+          newListings: "{{newListings}}"
+          priceDrops: "{{priceDrops}}"
+          schedule: "{{todaySchedule}}"
+          agentName: "{{onboarding.name_brokerage}}"
+        output: digest
+      - id: send
+        skill: whatsapp-send
+        input:
+          to: "{{user.phone}}"
+          templateId: realtor_morning_digest_v1
+        output: deliveryReceipt
+
+  - id: schedule-showing
+    name: Schedule showing
+    description: Create a showing from natural language request
+    trigger:
+      type: intent
+      value: "schedule|book|arrange.*(showing|viewing|visit)"
+    steps:
+      - id: extract-details
+        skill: llm-extract
+        input:
+          text: "{{message.text}}"
+          schema: ShowingRequest
+        output: showing
+      - id: check-calendar
+        skill: google-calendar
+        input:
+          action: check_availability
+          datetime: "{{showing.datetime}}"
+        output: available
+      - id: create-event
+        skill: google-calendar
+        input:
+          action: create_event
+          title: "Showing - {{showing.address}}"
+          datetime: "{{showing.datetime}}"
+          attendees: "{{showing.clientEmail}}"
+        output: event
+      - id: reply
+        skill: whatsapp-reply
+        input:
+          text: "{{confirmationText}}"
+
+  - id: draft-offer
+    name: Draft offer
+    description: Pull comps and draft an offer letter
+    trigger:
+      type: intent
+      value: "draft|write|prepare.*(offer|purchase)"
+    steps:
+      - id: extract-address
+        skill: llm-extract
+        input:
+          text: "{{message.text}}"
+          schema: OfferRequest
+        output: offer
+      - id: pull-comps
+        skill: mls-search
+        input:
+          address: "{{offer.address}}"
+          filter: sold_last_90d
+          radius_km: "1"
+          limit: "5"
+        output: comps
+      - id: draft
+        skill: llm-format
+        input:
+          template: offer-letter
+          offer: "{{offer}}"
+          comps: "{{comps}}"
+          agentName: "{{onboarding.name_brokerage}}"
+        output: draftText
+      - id: reply
+        skill: whatsapp-reply
+        input:
+          text: "{{draftText}}"
+
+  - id: client-followup
+    name: Client follow-up
+    description: Draft a personalised client follow-up message
+    trigger:
+      type: intent
+      value: "follow.?up|check in|touch base.*(client|buyer|seller)"
+    steps:
+      - id: extract-context
+        skill: llm-extract
+        input:
+          text: "{{message.text}}"
+          schema: FollowUpRequest
+        output: request
+      - id: draft
+        skill: llm-format
+        input:
+          template: client-followup
+          request: "{{request}}"
+          tone: "{{onboarding.tone}}"
+          agentName: "{{onboarding.name_brokerage}}"
+        output: followupText
+      - id: reply
+        skill: whatsapp-reply
+        input:
+          text: "{{followupText}}"
+
+  - id: cma-report
+    name: CMA report
+    description: Generate a PDF comparative market analysis
+    trigger:
+      type: intent
+      value: "CMA|comparative market|market analysis"
+    steps:
+      - id: extract-address
+        skill: llm-extract
+        input:
+          text: "{{message.text}}"
+          schema: CMARequest
+        output: cma
+      - id: pull-actives
+        skill: mls-search
+        input:
+          address: "{{cma.address}}"
+          filter: active
+          radius_km: "1"
+        output: actives
+      - id: pull-solds
+        skill: mls-search
+        input:
+          address: "{{cma.address}}"
+          filter: sold_last_180d
+          radius_km: "1"
+        output: solds
+      - id: generate-pdf
+        skill: pdf-generator
+        input:
+          template: cma-report
+          address: "{{cma.address}}"
+          actives: "{{actives}}"
+          solds: "{{solds}}"
+          agentName: "{{onboarding.name_brokerage}}"
+        output: pdfPath
+      - id: reply
+        skill: whatsapp-reply
+        input:
+          text: "CMA report for {{cma.address}} has been sent to {{onboarding.email}}"
+
+soul:
+  persona: |
+    You are a highly competent, licensed real estate professional assistant serving
+    {{onboarding.name_brokerage}}. You know the Canadian real estate market deeply,
+    understand REBBA compliance requirements, and write in a {{onboarding.tone}} tone.
+    You never give investment advice. You always recommend clients consult their own
+    legal counsel before signing. You format all dollar amounts in CAD.
+  tone: "{{onboarding.tone}}"
+  boundaries:
+    - Never provide investment advice or return on investment projections
+    - Never write offers without confirming with the agent first
+    - Never share one client's information with another
+    - Always recommend legal review before signing
+
+channels:
+  primary: whatsapp
+  fallback: email
+
+dataConnections:
+  - service: pillar9
+    required: true
+    setupUrl: https://clawsuit.io/connect/pillar9
+  - service: google_calendar
+    required: false
+    setupUrl: https://clawsuit.io/connect/google-calendar

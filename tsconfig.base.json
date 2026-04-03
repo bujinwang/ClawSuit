@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2023"],
+    "strict": true,
+    "noImplicitOverride": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "declaration": true,
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "@clawsuit/marketplace": ["packages/marketplace/src/index.ts"],
+      "@clawsuit/core": ["packages/core/src/index.ts"],
+      "@clawsuit/api": ["packages/api/src/index.ts"],
+      "@clawsuit/gateway": ["packages/gateway/src/index.ts"],
+      "@clawsuit/orchestrator": ["packages/orchestrator/src/index.ts"]
+    }
+  }
+}
