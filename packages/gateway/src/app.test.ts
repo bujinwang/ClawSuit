@@ -16,6 +16,7 @@ import {
 
 import { createGatewayApp } from "./app.js";
 import { StubTranscriber } from "./middleware/transcribe.js";
+import { InMemoryRateLimitStore, RateLimiter } from "./rate-limit.js";
 import type { IntentRouter } from "./types.js";
 
 class CapturingMessenger implements PromptChannel {
@@ -91,9 +92,64 @@ describe("createGatewayApp", () => {
     await waitFor(() => deps.messenger.texts.length > 0);
     expect(deps.messenger.texts[0]?.text).toContain("1 of 5");
   });
+
+  it("rejects messages after the per-user hourly rate limit", async () => {
+    const deps = buildDeps({
+      rateLimiter: new RateLimiter({
+        store: new InMemoryRateLimitStore(),
+        limit: 0,
+        windowMs: 60 * 60 * 1000
+      })
+    });
+
+    await expect(
+      createGatewayApp(deps).inject({
+        method: "POST",
+        url: "/webhook/whatsapp",
+        headers: {
+          "x-hub-signature-256": signPayload(
+            {
+              entry: [
+                {
+                  changes: [
+                    {
+                      value: {
+                        messages: [{ from: "+17805550123", type: "text", text: { body: "Hi" } }]
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "app-secret"
+          )
+        },
+        payload: {
+          entry: [
+            {
+              changes: [
+                {
+                  value: {
+                    messages: [{ from: "+17805550123", type: "text", text: { body: "Hi" } }]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      })
+    ).resolves.toMatchObject({ statusCode: 429 });
+  });
 });
 
-function buildDeps() {
+function buildDeps(overrides: Partial<ReturnType<typeof baseDeps>> = {}) {
+  return {
+    ...baseDeps(),
+    ...overrides
+  };
+}
+
+function baseDeps() {
   const repoRoot = path.resolve(process.cwd(), "../..");
   const messenger = new CapturingMessenger();
   const userStore = new InMemoryUserStore();
@@ -115,7 +171,12 @@ function buildDeps() {
     appSecret: "app-secret",
     transcriber: new StubTranscriber("voice transcript"),
     intentRouter: router,
-    messenger
+    messenger,
+    rateLimiter: new RateLimiter({
+      store: new InMemoryRateLimitStore(),
+      limit: 60,
+      windowMs: 60 * 60 * 1000
+    })
   };
 }
 

@@ -6,6 +6,7 @@ export * from "./onboarding/role-activator.js";
 export * from "./roles/load-role-bundle.js";
 export * from "./routes/credentials.js";
 export * from "./routes/onboarding.js";
+export * from "./server.js";
 export * from "./storage/onboarding-session-store.js";
 export * from "./storage/user-store.js";
 export * from "./types.js";

@@ -21,7 +21,11 @@ export function createApiApp(options: {
   containerPauser?: ContainerPauser;
   priceIds?: Record<string, string>;
 } = {}): FastifyInstance {
-  const app = Fastify({ logger: false });
+  const app = Fastify({
+    logger: {
+      level: "info"
+    }
+  });
 
   const userStore = new InMemoryUserStore();
   const messenger = options.messenger ?? {
@@ -53,6 +57,11 @@ export function createApiApp(options: {
     activator: new CompilerRoleActivator(options.repoRoot ? { repoRoot: options.repoRoot } : {}),
     ...(billing ? { billing } : {}),
     ...(options.repoRoot ? { repoRoot: options.repoRoot } : {})
+  });
+
+  app.setErrorHandler((error, request, reply) => {
+    request.log.error({ err: error, route: request.routeOptions.url }, "api request failed");
+    reply.status(500).send({ error: error instanceof Error ? error.message : "Internal Server Error" });
   });
 
   app.get("/health", async () => ({ ok: true }));

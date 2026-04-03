@@ -54,6 +54,9 @@ export interface WhatsAppRouteDeps {
   appSecret: string;
   transcriber: TranscriptionService;
   intentRouter: IntentRouter;
+  rateLimiter?: {
+    enforce(key: string): Promise<void>;
+  };
 }
 
 export type PreHandlerLike = (request: FastifyRequest, reply: FastifyReply) => Promise<void>;

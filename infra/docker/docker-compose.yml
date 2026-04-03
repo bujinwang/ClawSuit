@@ -1,0 +1,59 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: clawsuit
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  api:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.api
+    env_file:
+      - ../../.env
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+      OPENCLAW_DATA_DIR: /data/openclaw
+    ports:
+      - "4000:4000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - openclaw_data:/data/openclaw
+    depends_on:
+      - postgres
+      - redis
+
+  gateway:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.gateway
+    env_file:
+      - ../../.env
+    environment:
+      NODE_ENV: development
+      PORT: 4001
+    ports:
+      - "4001:4001"
+    depends_on:
+      - api
+      - redis
+
+volumes:
+  postgres_data:
+  redis_data:
+  openclaw_data:

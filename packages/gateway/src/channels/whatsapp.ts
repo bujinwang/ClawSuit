@@ -26,6 +26,17 @@ export function registerWhatsAppRoutes(app: FastifyInstance, deps: WhatsAppRoute
     },
     async (request, reply) => {
       const body = request.body as WhatsAppWebhookPayload;
+
+      if (deps.rateLimiter) {
+        for (const entry of body.entry ?? []) {
+          for (const change of entry.changes ?? []) {
+            for (const message of change.value?.messages ?? []) {
+              await deps.rateLimiter.enforce(message.from);
+            }
+          }
+        }
+      }
+
       reply.status(200).send("OK");
 
       for (const entry of body.entry ?? []) {

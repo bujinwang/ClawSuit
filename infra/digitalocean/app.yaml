@@ -1,0 +1,35 @@
+name: clawsuit
+region: tor
+
+services:
+  - name: api
+    github:
+      repo: example/clawsuit
+      branch: main
+      deploy_on_push: true
+    source_dir: /
+    dockerfile_path: infra/docker/Dockerfile.api
+    http_port: 4000
+    instance_count: 1
+    instance_size_slug: basic-xs
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "4000"
+
+  - name: gateway
+    github:
+      repo: example/clawsuit
+      branch: main
+      deploy_on_push: true
+    source_dir: /
+    dockerfile_path: infra/docker/Dockerfile.gateway
+    http_port: 4001
+    instance_count: 1
+    instance_size_slug: basic-xs
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "4001"
