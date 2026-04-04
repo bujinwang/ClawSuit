@@ -5,7 +5,9 @@ export interface BaseRuntimeEnv {
 
 export interface ApiRuntimeEnv extends BaseRuntimeEnv {
   PORT: number;
+  REDIS_URL: string;
   CREDENTIAL_ENCRYPTION_KEY: string;
+  STRIPE_SECRET_KEY: string;
   STRIPE_WEBHOOK_SECRET: string;
   STRIPE_PRICE_REALTOR: string;
   OPENCLAW_DATA_DIR: string;
@@ -13,6 +15,8 @@ export interface ApiRuntimeEnv extends BaseRuntimeEnv {
 
 export interface GatewayRuntimeEnv extends BaseRuntimeEnv {
   PORT: number;
+  REDIS_URL: string;
+  CREDENTIAL_ENCRYPTION_KEY: string;
   WA_VERIFY_TOKEN: string;
   WA_APP_SECRET: string;
   WA_PHONE_NUMBER_ID: string;
@@ -24,7 +28,9 @@ export function validateApiEnv(source: Record<string, string | undefined>): ApiR
     NODE_ENV: parseNodeEnv(source.NODE_ENV),
     PORT: parsePort(source.PORT ?? "4000"),
     APP_URL: requireValue(source.APP_URL, "APP_URL"),
+    REDIS_URL: requireValue(source.REDIS_URL, "REDIS_URL"),
     CREDENTIAL_ENCRYPTION_KEY: requireHexKey(source.CREDENTIAL_ENCRYPTION_KEY, "CREDENTIAL_ENCRYPTION_KEY"),
+    STRIPE_SECRET_KEY: requireValue(source.STRIPE_SECRET_KEY, "STRIPE_SECRET_KEY"),
     STRIPE_WEBHOOK_SECRET: requireValue(source.STRIPE_WEBHOOK_SECRET, "STRIPE_WEBHOOK_SECRET"),
     STRIPE_PRICE_REALTOR: requireValue(source.STRIPE_PRICE_REALTOR, "STRIPE_PRICE_REALTOR"),
     OPENCLAW_DATA_DIR: requireValue(source.OPENCLAW_DATA_DIR, "OPENCLAW_DATA_DIR")
@@ -38,6 +44,8 @@ export function validateGatewayEnv(source: Record<string, string | undefined>): 
     NODE_ENV: parseNodeEnv(source.NODE_ENV),
     PORT: parsePort(source.PORT ?? "4001"),
     APP_URL: requireValue(source.APP_URL, "APP_URL"),
+    REDIS_URL: requireValue(source.REDIS_URL, "REDIS_URL"),
+    CREDENTIAL_ENCRYPTION_KEY: requireHexKey(source.CREDENTIAL_ENCRYPTION_KEY, "CREDENTIAL_ENCRYPTION_KEY"),
     WA_VERIFY_TOKEN: requireValue(source.WA_VERIFY_TOKEN, "WA_VERIFY_TOKEN"),
     WA_APP_SECRET: requireValue(source.WA_APP_SECRET, "WA_APP_SECRET"),
     WA_PHONE_NUMBER_ID: requireValue(source.WA_PHONE_NUMBER_ID, "WA_PHONE_NUMBER_ID"),

@@ -20,6 +20,7 @@ export interface CreateContainerRequest {
 
 export interface ContainerRuntime {
   createContainer(request: CreateContainerRequest): Promise<{ id: string; start(): Promise<void>; stop(): Promise<void> }>;
+  pauseContainer?(containerId: string): Promise<void>;
 }
 
 export interface InstanceRegistry {

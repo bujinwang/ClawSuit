@@ -14,6 +14,7 @@ import type { PromptChannel } from "./types.js";
 export function createApiApp(options: {
   messenger?: PromptChannel;
   onboardingEngine?: OnboardingEngine;
+  credentialService?: CredentialService;
   repoRoot?: string;
   encryptionKeyHex?: string;
   appUrl?: string;
@@ -32,7 +33,7 @@ export function createApiApp(options: {
     sendText: async () => undefined,
     sendInteractive: async () => undefined
   };
-  const credentials = new CredentialService({
+  const credentials = options.credentialService ?? new CredentialService({
     encryptionKeyHex: options.encryptionKeyHex ?? "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     repository: new InMemoryCredentialRepository(),
     setupTokens: new InMemorySetupTokenStore(),

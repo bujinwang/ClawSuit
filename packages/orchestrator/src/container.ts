@@ -75,6 +75,9 @@ export class ContainerManager {
       throw new Error(`No container for user ${userId}`);
     }
 
+    if (this.deps.runtime.pauseContainer) {
+      await this.deps.runtime.pauseContainer(instance.containerId);
+    }
     instance.status = "paused";
     await this.deps.registry.save(instance);
   }

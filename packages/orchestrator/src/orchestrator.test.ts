@@ -14,6 +14,7 @@ import type { ContainerRuntime, ContainerTransport, CreateContainerRequest } fro
 
 class FakeRuntime implements ContainerRuntime {
   public readonly requests: CreateContainerRequest[] = [];
+  public pausedContainerIds: string[] = [];
 
   public async createContainer(request: CreateContainerRequest): Promise<{ id: string; start(): Promise<void>; stop(): Promise<void> }> {
     this.requests.push(request);
@@ -22,6 +23,10 @@ class FakeRuntime implements ContainerRuntime {
       start: async () => undefined,
       stop: async () => undefined
     };
+  }
+
+  public async pauseContainer(containerId: string): Promise<void> {
+    this.pausedContainerIds.push(containerId);
   }
 }
 
@@ -54,5 +59,8 @@ describe("ContainerManager", () => {
 
     const proxy = new ContainerProxy({ registry, transport: new FakeTransport() });
     await expect(proxy.sendMessage("user_abc12345", "hello")).resolves.toBe("proxy reply");
+
+    await manager.pause("user_abc12345");
+    expect(runtime.pausedContainerIds).toEqual(["container_1"]);
   });
 });

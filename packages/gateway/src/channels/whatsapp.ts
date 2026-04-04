@@ -77,8 +77,8 @@ export async function processIncomingMessage(message: WhatsAppMessage, deps: Wha
   }
 
   await deps.intentRouter.route({
-    userId: user.id,
-    roleSlug: user.activeRole,
+    user: { id: user.id, phone: user.phone },
+    role: { roleSlug: user.activeRole, config: user.activeRoleConfig ?? {} },
     text,
     channel: "whatsapp"
   });

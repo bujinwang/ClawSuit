@@ -63,6 +63,60 @@ export class InMemorySetupTokenStore implements SetupTokenStore {
   }
 }
 
+interface RedisClient {
+  set(key: string, value: string, ...args: Array<string | number>): Promise<unknown>;
+  get(key: string): Promise<string | null>;
+  del(...keys: string[]): Promise<number>;
+}
+
+const CREDENTIAL_PREFIX = "clawsuit:credential:";
+const TOKEN_PREFIX = "clawsuit:cred-setup:";
+
+export class RedisCredentialRepository implements CredentialRepository {
+  public constructor(private readonly redis: RedisClient) {}
+
+  public async upsert(record: StoredCredential): Promise<void> {
+    await this.redis.set(makeCredentialKey(record.userId, record.service), JSON.stringify(record));
+  }
+
+  public async get(userId: string, service: string): Promise<StoredCredential | undefined> {
+    const raw = await this.redis.get(makeCredentialKey(userId, service));
+    return raw ? (JSON.parse(raw) as StoredCredential) : undefined;
+  }
+
+  public async list(userId: string): Promise<StoredCredential[]> {
+    const records: StoredCredential[] = [];
+    for (const service of ["pillar9", "google_calendar"]) {
+      const record = await this.get(userId, service);
+      if (record) {
+        records.push(record);
+      }
+    }
+    return records;
+  }
+
+  public async delete(userId: string, service: string): Promise<void> {
+    await this.redis.del(makeCredentialKey(userId, service));
+  }
+}
+
+export class RedisSetupTokenStore implements SetupTokenStore {
+  public constructor(private readonly redis: RedisClient) {}
+
+  public async set(token: string, payload: { userId: string; service: string }, ttlSeconds: number): Promise<void> {
+    await this.redis.set(`${TOKEN_PREFIX}${token}`, JSON.stringify(payload), "EX", ttlSeconds);
+  }
+
+  public async get(token: string): Promise<{ userId: string; service: string } | undefined> {
+    const raw = await this.redis.get(`${TOKEN_PREFIX}${token}`);
+    return raw ? (JSON.parse(raw) as { userId: string; service: string }) : undefined;
+  }
+
+  public async delete(token: string): Promise<void> {
+    await this.redis.del(`${TOKEN_PREFIX}${token}`);
+  }
+}
+
 export class CredentialService {
   private readonly encryptionKey: Buffer;
 
@@ -158,5 +212,5 @@ function validateEncryptionKey(encryptionKeyHex: string): Buffer {
 }
 
 function makeCredentialKey(userId: string, service: string): string {
-  return `${userId}:${service}`;
+  return `${CREDENTIAL_PREFIX}${userId}:${service}`;
 }

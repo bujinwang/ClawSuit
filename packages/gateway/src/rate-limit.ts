@@ -18,6 +18,24 @@ export class InMemoryRateLimitStore implements RateLimitStore {
   }
 }
 
+interface RedisClient {
+  incr(key: string): Promise<number>;
+  pexpire(key: string, ttlMs: number): Promise<number>;
+}
+
+export class RedisRateLimitStore implements RateLimitStore {
+  public constructor(private readonly redis: RedisClient) {}
+
+  public async increment(key: string, windowMs: number): Promise<number> {
+    const namespacedKey = `clawsuit:rate:${key}`;
+    const count = await this.redis.incr(namespacedKey);
+    if (count === 1) {
+      await this.redis.pexpire(namespacedKey, windowMs);
+    }
+    return count;
+  }
+}
+
 export class RateLimiter {
   public constructor(
     private readonly deps: {

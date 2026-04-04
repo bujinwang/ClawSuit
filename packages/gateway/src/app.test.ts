@@ -13,6 +13,7 @@ import {
   type PromptButton,
   type PromptChannel
 } from "@clawsuit/api";
+import type { RouterInput } from "@clawsuit/core";
 
 import { createGatewayApp } from "./app.js";
 import { StubTranscriber } from "./middleware/transcribe.js";
@@ -33,9 +34,9 @@ class CapturingMessenger implements PromptChannel {
 }
 
 class CapturingRouter implements IntentRouter {
-  public readonly events: Array<{ userId: string; roleSlug: string; text: string; channel: string }> = [];
+  public readonly events: RouterInput[] = [];
 
-  public async route(input: { userId: string; roleSlug: string; text: string; channel: string }): Promise<void> {
+  public async route(input: RouterInput): Promise<void> {
     this.events.push(input);
   }
 }

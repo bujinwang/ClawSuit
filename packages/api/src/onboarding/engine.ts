@@ -81,6 +81,7 @@ export class OnboardingEngine {
     const activation = await this.deps.activator.activate(user, session.roleSlug, session.answers);
 
     user.activeRole = activation.roleSlug;
+    user.activeRoleConfig = session.answers;
     if (!user.name) {
       const derivedName = session.answers.name_brokerage?.split(",")[0]?.trim();
       if (derivedName) {

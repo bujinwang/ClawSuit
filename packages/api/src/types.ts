@@ -6,6 +6,7 @@ export interface UserRecord {
   email?: string;
   name?: string;
   activeRole?: string;
+  activeRoleConfig?: Record<string, string>;
   stripeCustomerId?: string;
   trialEndsAt?: Date;
 }

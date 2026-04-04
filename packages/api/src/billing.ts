@@ -48,6 +48,36 @@ export class InMemoryBillingRepository implements BillingRepository {
   }
 }
 
+interface RedisClient {
+  set(key: string, value: string): Promise<unknown>;
+  get(key: string): Promise<string | null>;
+}
+
+const BILLING_PREFIX = "clawsuit:billing:";
+
+export class RedisBillingRepository implements BillingRepository {
+  public constructor(private readonly redis: RedisClient) {}
+
+  public async save(record: BillingSubscriptionRecord): Promise<void> {
+    await this.redis.set(`${BILLING_PREFIX}${record.stripeSubId}`, JSON.stringify({
+      ...record,
+      currentPeriodEnd: record.currentPeriodEnd.toISOString()
+    }));
+  }
+
+  public async findByStripeSubId(stripeSubId: string): Promise<BillingSubscriptionRecord | undefined> {
+    const raw = await this.redis.get(`${BILLING_PREFIX}${stripeSubId}`);
+    if (!raw) {
+      return undefined;
+    }
+    const parsed = JSON.parse(raw) as Omit<BillingSubscriptionRecord, "currentPeriodEnd"> & { currentPeriodEnd: string };
+    return {
+      ...parsed,
+      currentPeriodEnd: new Date(parsed.currentPeriodEnd)
+    };
+  }
+}
+
 export class BillingManager implements BillingService {
   public constructor(
     private readonly deps: {

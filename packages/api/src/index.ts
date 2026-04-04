@@ -9,4 +9,5 @@ export * from "./routes/onboarding.js";
 export * from "./server.js";
 export * from "./storage/onboarding-session-store.js";
 export * from "./storage/user-store.js";
+export * from "./stripe-provider.js";
 export * from "./types.js";

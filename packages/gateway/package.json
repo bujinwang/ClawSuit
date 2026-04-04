@@ -15,6 +15,9 @@
   },
   "dependencies": {
     "@clawsuit/api": "workspace:*",
-    "fastify": "^5.6.1"
+    "@clawsuit/core": "workspace:*",
+    "@clawsuit/orchestrator": "workspace:*",
+    "fastify": "^5.6.1",
+    "ioredis": "^5.8.1"
   }
 }

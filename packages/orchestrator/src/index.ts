@@ -1,3 +1,4 @@
+export * from "./adapters.js";
 export * from "./container.js";
 export * from "./file-writer.js";
 export * from "./proxy.js";

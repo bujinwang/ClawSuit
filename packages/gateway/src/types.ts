@@ -1,6 +1,7 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 
 import type { OnboardingEngine, UserStore } from "@clawsuit/api";
+import type { RouterInput } from "@clawsuit/core";
 
 export interface WhatsAppTextMessage {
   from: string;
@@ -44,7 +45,7 @@ export interface TranscriptionService {
 }
 
 export interface IntentRouter {
-  route(input: { userId: string; roleSlug: string; text: string; channel: string }): Promise<void>;
+  route(input: RouterInput): Promise<void>;
 }
 
 export interface WhatsAppRouteDeps {
