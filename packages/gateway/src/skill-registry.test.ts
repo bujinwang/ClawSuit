@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { CredentialService, InMemoryCredentialRepository, InMemorySetupTokenStore, InMemoryUserStore } from "@clawsuit/api";
 
 import { createGatewayIntentRouter } from "./skill-registry.js";
+import { StubLlmProvider } from "./llm.js";
 
 describe("createGatewayIntentRouter", () => {
   it("routes a workflow and sends the whatsapp reply through the concrete skill registry", async () => {
@@ -25,6 +26,7 @@ describe("createGatewayIntentRouter", () => {
       conversationProxy: {
         sendMessage: async () => "fallback"
       },
+      llmProvider: new StubLlmProvider(),
       whatsappSender: {
         sendText: async (to: string, text: string) => {
           sent.push({ to, text });

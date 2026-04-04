@@ -17,7 +17,9 @@ import {
 import { ContainerProxy, HttpContainerTransport, RedisInstanceRegistry } from "@clawsuit/orchestrator";
 
 import { createGatewayApp } from "./app.js";
+import { MetaWhatsAppMediaResolver } from "./channels/whatsapp-media.js";
 import { WhatsAppSender } from "./channels/whatsapp-send.js";
+import { OpenAiLlmProvider, StubLlmProvider } from "./llm.js";
 import { OpenAiWhisperTranscriber } from "./middleware/transcribe.js";
 import { RateLimiter, RedisRateLimitStore } from "./rate-limit.js";
 import { createGatewayIntentRouter } from "./skill-registry.js";
@@ -45,6 +47,9 @@ export async function buildGatewayServer(source: Record<string, string | undefin
   });
   const whatsappSender = new WhatsAppSender({
     phoneNumberId: env.WA_PHONE_NUMBER_ID,
+    accessToken: env.WA_ACCESS_TOKEN
+  });
+  const mediaResolver = new MetaWhatsAppMediaResolver({
     accessToken: env.WA_ACCESS_TOKEN
   });
   const onboardingEngine = new OnboardingEngine({
@@ -84,7 +89,10 @@ export async function buildGatewayServer(source: Record<string, string | undefin
       transport: new HttpContainerTransport()
     }),
     whatsappSender,
-    userStore
+    userStore,
+    llmProvider: source.OPENAI_API_KEY
+      ? new OpenAiLlmProvider({ apiKey: source.OPENAI_API_KEY })
+      : new StubLlmProvider()
   });
 
   const app = createGatewayApp({
@@ -93,7 +101,8 @@ export async function buildGatewayServer(source: Record<string, string | undefin
     verifyToken: env.WA_VERIFY_TOKEN,
     appSecret: env.WA_APP_SECRET,
     transcriber: new OpenAiWhisperTranscriber({
-      ...(source.OPENAI_API_KEY ? { openAiApiKey: source.OPENAI_API_KEY } : {})
+      ...(source.OPENAI_API_KEY ? { openAiApiKey: source.OPENAI_API_KEY } : {}),
+      mediaResolver: mediaResolver.resolve.bind(mediaResolver),
     }),
     intentRouter,
     rateLimiter: new RateLimiter({

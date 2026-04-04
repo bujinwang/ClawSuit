@@ -53,6 +53,18 @@ services:
       - api
       - redis
 
+  worker:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.worker
+    env_file:
+      - ../../.env
+    environment:
+      NODE_ENV: development
+    depends_on:
+      - redis
+      - api
+
 volumes:
   postgres_data:
   redis_data:

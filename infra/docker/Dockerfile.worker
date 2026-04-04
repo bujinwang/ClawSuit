@@ -1,0 +1,11 @@
+FROM node:25-bookworm-slim
+WORKDIR /app
+
+COPY package.json pnpm-workspace.yaml tsconfig.base.json ./
+COPY packages ./packages
+COPY roles ./roles
+
+RUN corepack enable && corepack pnpm install --frozen-lockfile || corepack pnpm install
+RUN corepack pnpm build
+
+CMD ["node", "packages/gateway/dist/worker.js"]

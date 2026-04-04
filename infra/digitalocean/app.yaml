@@ -33,3 +33,14 @@ services:
         value: production
       - key: PORT
         value: "4001"
+
+workers:
+  - name: workflow-worker
+    github:
+      repo: example/clawsuit
+      branch: main
+      deploy_on_push: true
+    source_dir: /
+    dockerfile_path: infra/docker/Dockerfile.worker
+    instance_count: 1
+    instance_size_slug: basic-xxs

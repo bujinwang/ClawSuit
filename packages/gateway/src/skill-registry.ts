@@ -10,6 +10,7 @@ import {
 } from "@clawsuit/core";
 
 import { WhatsAppSender } from "./channels/whatsapp-send.js";
+import type { LlmProvider } from "./llm.js";
 
 class CredentialBackedUserCredentialStore {
   public constructor(private readonly credentials: CredentialService) {}
@@ -25,6 +26,7 @@ export function createGatewayIntentRouter(deps: {
   conversationProxy: ConversationProxy;
   whatsappSender: WhatsAppSender;
   userStore: UserStore;
+  llmProvider: LlmProvider;
 }): IntentRouter {
   const credentialStore = new CredentialBackedUserCredentialStore(deps.credentials);
 
@@ -70,21 +72,16 @@ export function createGatewayIntentRouter(deps: {
           };
         case "llm-format":
           return {
-            execute: async (input) => ({
-              summary: `Generated summary for ${JSON.stringify(input)}`,
-              todaySchedule: "No conflicts"
-            })
+            execute: async (input) => deps.llmProvider.format(
+              String((input as Record<string, string>).template ?? "default"),
+              input as Record<string, string>
+            )
           };
         case "llm-extract":
           return {
             execute: async (input) => {
               const data = input as Record<string, string>;
-              return {
-                text: data.text ?? "",
-                datetime: new Date().toISOString(),
-                address: "Unknown address",
-                clientEmail: ""
-              };
+              return deps.llmProvider.extract(data.text ?? "", data.schema ?? "UnknownSchema");
             }
           };
         case "email-smtp":
